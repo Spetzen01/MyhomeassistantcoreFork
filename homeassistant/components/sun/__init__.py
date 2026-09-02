@@ -34,6 +34,7 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Track the state of the sun."""
+    _LOGGER.info("Hello from my dev environment!")
     if not hass.config_entries.async_entries(DOMAIN):
         # We avoid creating an import flow if its already
         # setup since it will have to import the config_flow
