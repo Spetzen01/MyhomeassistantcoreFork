@@ -14,6 +14,7 @@ import pytest
 
 from homeassistant import config_entries
 from homeassistant.components.ntfy.const import (
+    CONF_CATEGORY,  # GA3 Vertical slice
     CONF_MESSAGE,
     CONF_PRIORITY,
     CONF_TAGS,
@@ -22,6 +23,7 @@ from homeassistant.components.ntfy.const import (
     DOMAIN,
     SECTION_AUTH,
     SECTION_FILTER,
+    SUBENTRY_TYPE_CATEGORY,  # GA3 Vertical slice
     SUBENTRY_TYPE_TOPIC,
 )
 from homeassistant.config_entries import SOURCE_USER, ConfigSubentry, FlowType
@@ -852,6 +854,68 @@ async def test_topic_reconfigure_flow(hass: HomeAssistant) -> None:
             subentry_type=SUBENTRY_TYPE_TOPIC,
             title="mytopic",
             unique_id="mytopic",
+        )
+    }
+
+    await hass.async_block_till_done()
+
+
+# GA3 Vertical slice
+async def test_add_category_flow(hass: HomeAssistant) -> None:
+    """Test add category subentry flow."""
+    config_entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_URL: "https://ntfy.sh/", CONF_VERIFY_SSL: True, CONF_USERNAME: None},
+    )
+    config_entry.add_to_hass(hass)
+
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    result = await hass.config_entries.subentries.async_init(
+        (config_entry.entry_id, SUBENTRY_TYPE_CATEGORY),
+        context={"source": SOURCE_USER},
+    )
+
+    assert result["type"] is FlowResultType.MENU
+    assert "add_category" in result["menu_options"]
+    assert result["step_id"] == "user"
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {"next_step_id": "add_category"},
+    )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "add_category"
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_CATEGORY: "mycategory",
+            SECTION_FILTER: {
+                CONF_PRIORITY: ["5"],
+                CONF_TAGS: ["octopus", "+1"],
+                CONF_TITLE: "title",
+                CONF_MESSAGE: "triggered",
+            },
+        },
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    subentry_id = list(config_entry.subentries)[0]
+    assert config_entry.subentries == {
+        subentry_id: ConfigSubentry(
+            data={
+                CONF_CATEGORY: "mycategory",
+                CONF_PRIORITY: ["5"],
+                CONF_TAGS: ["octopus", "+1"],
+                CONF_TITLE: "title",
+                CONF_MESSAGE: "triggered",
+            },
+            subentry_id=subentry_id,
+            subentry_type=SUBENTRY_TYPE_CATEGORY,
+            title="mycategory",
+            unique_id="mycategory",
         )
     }
 
