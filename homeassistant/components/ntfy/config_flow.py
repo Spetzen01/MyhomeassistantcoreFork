@@ -48,6 +48,7 @@ from homeassistant.helpers.selector import (
 )
 
 from .const import (
+    CONF_CATEGORY,  ### GA3 Vertical slice ###
     CONF_MESSAGE,
     CONF_PRIORITY,
     CONF_TAGS,
@@ -507,4 +508,106 @@ class TopicSubentryFlowHandler(ConfigSubentryFlow):
                 suggested_values=subentry_data,
             ),
             description_placeholders={CONF_TOPIC: subentry_data[CONF_TOPIC]},
+        )
+
+
+# GROUP ASSIGNMENT 3 VERTICAL SLICE
+CATEGORY_FILTER_SCHEMA = probatio.Schema(
+    {
+        probatio.Optional(CONF_PRIORITY): SelectSelector(
+            SelectSelectorConfig(
+                multiple=True,
+                options=["5", "4", "3", "2", "1"],
+                mode=SelectSelectorMode.DROPDOWN,
+                translation_key="priority",
+            )
+        ),
+        probatio.Optional(CONF_TAGS): TextSelector(
+            TextSelectorConfig(
+                type=TextSelectorType.TEXT,
+                multiple=True,
+            ),
+        ),
+        probatio.Optional(CONF_TITLE): str,
+        probatio.Optional(CONF_MESSAGE): str,
+    }
+)
+
+
+STEP_USER_CATEGORY_SCHEMA = probatio.Schema(
+    {
+        probatio.Required(CONF_CATEGORY): str,
+        # Name field is no longer allowed in config flow schemas
+        # pylint: disable-next=home-assistant-config-flow-name-field
+        probatio.Optional(CONF_NAME): str,
+        probatio.Required(SECTION_FILTER): data_entry_flow.section(
+            CATEGORY_FILTER_SCHEMA,
+            {"collapsed": True},
+        ),
+    }
+)
+
+RE_CATEGORY = re.compile("^[-_a-zA-Z0-9]{1,64}$")
+
+
+class CategorySubentryFlowHandler(ConfigSubentryFlow):
+    """Handle subentry flow for adding and modifying a category."""
+
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """User flow to add a new category."""
+
+        return self.async_show_menu(
+            step_id="user",
+            menu_options=["add_category", "generate_category"],
+        )
+
+    async def async_step_generate_category(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """User flow to add a new category."""
+        category = "".join(
+            random.choices(
+                string.ascii_lowercase + string.ascii_uppercase + string.digits,
+                k=16,
+            )
+        )
+        return self.async_show_form(
+            step_id="add_category",
+            data_schema=self.add_suggested_values_to_schema(
+                data_schema=STEP_USER_CATEGORY_SCHEMA,
+                suggested_values={CONF_CATEGORY: category},
+            ),
+        )
+
+    async def async_step_add_category(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """User flow to add a new category."""
+        config_entry = self._get_entry()
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            if not RE_CATEGORY.match(user_input[CONF_CATEGORY]):
+                errors["base"] = "invalid_category"
+            else:
+                for existing_subentry in config_entry.subentries.values():
+                    if existing_subentry.unique_id == user_input[CONF_CATEGORY]:
+                        return self.async_abort(reason="already_configured")
+
+                return self.async_create_entry(
+                    title=user_input.get(CONF_NAME, user_input[CONF_CATEGORY]),
+                    data={
+                        CONF_CATEGORY: user_input[CONF_CATEGORY],
+                        **user_input[SECTION_FILTER],
+                    },
+                    unique_id=user_input[CONF_CATEGORY],
+                )
+        return self.async_show_form(
+            step_id="add_category",
+            data_schema=self.add_suggested_values_to_schema(
+                data_schema=STEP_USER_CATEGORY_SCHEMA, suggested_values=user_input
+            ),
+            errors=errors,
         )

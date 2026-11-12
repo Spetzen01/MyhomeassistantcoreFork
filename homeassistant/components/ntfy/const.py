@@ -15,3 +15,7 @@ SECTION_FILTER = "filter"
 NTFY_EVENT = "ntfy_event"
 
 SUBENTRY_TYPE_TOPIC = "topic"
+
+# GA3 VERTICAL SLICE
+CONF_CATEGORY = "category"
+SUBENTRY_TYPE_CATEGORY = "category"
