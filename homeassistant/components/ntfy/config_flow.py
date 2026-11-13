@@ -172,7 +172,12 @@ class NtfyConfigFlow(ConfigFlow, domain=DOMAIN):
         cls, config_entry: ConfigEntry
     ) -> dict[str, type[ConfigSubentryFlow]]:
         """Return subentries supported by this integration."""
-        return {SUBENTRY_TYPE_TOPIC: TopicSubentryFlowHandler}
+        # return {SUBENTRY_TYPE_TOPIC: TopicSubentryFlowHandler}
+        # GA3 VERTICAL SLICE
+        return {
+            "topic": TopicSubentryFlowHandler,
+            "category": CategorySubentryFlowHandler,
+        }
 
     @override
     async def async_step_user(
@@ -563,23 +568,24 @@ class CategorySubentryFlowHandler(ConfigSubentryFlow):
             menu_options=["add_category", "generate_category"],
         )
 
-    async def async_step_generate_category(
-        self, user_input: dict[str, Any] | None = None
-    ) -> SubentryFlowResult:
-        """User flow to add a new category."""
-        category = "".join(
-            random.choices(
-                string.ascii_lowercase + string.ascii_uppercase + string.digits,
-                k=16,
-            )
-        )
-        return self.async_show_form(
-            step_id="add_category",
-            data_schema=self.add_suggested_values_to_schema(
-                data_schema=STEP_USER_CATEGORY_SCHEMA,
-                suggested_values={CONF_CATEGORY: category},
-            ),
-        )
+    # WE DO NOT NEED GENERATE CATEGORY (RANDOM GENERATION)
+    # async def async_step_generate_category(
+    #     self, user_input: dict[str, Any] | None = None
+    # ) -> SubentryFlowResult:
+    #     """User flow to add a new category."""
+    #     category = "".join(
+    #         random.choices(
+    #             string.ascii_lowercase + string.ascii_uppercase + string.digits,
+    #             k=16,
+    #         )
+    #     )
+    #     return self.async_show_form(
+    #         step_id="add_category",
+    #         data_schema=self.add_suggested_values_to_schema(
+    #             data_schema=STEP_USER_CATEGORY_SCHEMA,
+    #             suggested_values={CONF_CATEGORY: category},
+    #         ),
+    #     )
 
     async def async_step_add_category(
         self, user_input: dict[str, Any] | None = None
@@ -610,4 +616,33 @@ class CategorySubentryFlowHandler(ConfigSubentryFlow):
                 data_schema=STEP_USER_CATEGORY_SCHEMA, suggested_values=user_input
             ),
             errors=errors,
+        )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Reconfigure flow to modify an existing category."""
+        entry = self._get_entry()
+        subentry = self._get_reconfigure_subentry()
+        subentry_data = entry.subentries[subentry.subentry_id].data
+
+        if user_input is not None:
+            return self.async_update_and_abort(
+                entry=entry,
+                subentry=subentry,
+                data_updates={
+                    CONF_PRIORITY: user_input.get(CONF_PRIORITY),
+                    CONF_TAGS: user_input.get(CONF_TAGS),
+                    CONF_TITLE: user_input.get(CONF_TITLE),
+                    CONF_MESSAGE: user_input.get(CONF_MESSAGE),
+                },
+            )
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=self.add_suggested_values_to_schema(
+                data_schema=CATEGORY_FILTER_SCHEMA,
+                suggested_values=subentry_data,
+            ),
+            description_placeholders={CONF_CATEGORY: subentry_data[CONF_CATEGORY]},
         )

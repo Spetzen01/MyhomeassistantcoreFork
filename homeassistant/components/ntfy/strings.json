@@ -2,7 +2,8 @@
   "common": {
     "add_topic_description": "Set up a topic for notifications.",
     "sequence_id": "Sequence ID",
-    "topic": "Topic"
+    "topic": "Topic",
+    "category": "Category"
   },
   "config": {
     "abort": {
@@ -151,6 +152,37 @@
           "title": "[%key:component::ntfy::common::topic%]"
         }
       }
+    },
+    "category": {
+      "abort": {
+        "already_configured": "Category is already configured"
+      },
+      "entry_type": "[%key:component::ntfy::common::category%]",
+      "error": {
+        "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+        "invalid_category": "Invalid category. Only letters, numbers, underscores, or dashes allowed.",
+        "publish_forbidden": "Publishing to this category is forbidden",
+        "unknown": "[%key:common::config_flow::error::unknown%]"
+      },
+      "initiate_flow": {
+        "user": "Add category"
+      },
+      "step": {
+        "add_category": {
+          "data": {
+            "name": "Display name",
+            "category": "[%key:component::ntfy::common::category%]"
+          },
+
+          "title": "[%key:component::ntfy::common::category%]"
+        },
+        "user": {
+          "menu_options": {
+            "add_category": "Enter category"
+          },
+          "title": "[%key:component::ntfy::common::category%]"
+        }
+      }
     }
   },
   "entity": {
@@ -175,7 +207,8 @@
           "tags": { "name": "Tags" },
           "time": { "name": "Time" },
           "title": { "name": "Title" },
-          "topic": { "name": "[%key:component::ntfy::common::topic%]" }
+          "topic": { "name": "[%key:component::ntfy::common::topic%]" },
+          "category": { "name": "[%key:component::ntfy::common::category%]" }
         }
       }
     },
